@@ -10,7 +10,7 @@ fn main() {
         get_env("TWITTER_ACCESS_KEY"),
         get_env("TWITTER_ACCESS_SECRET"),
     );
-    tw.twitter();
+    tw.search();
 }
 
 fn get_env(key: &str) -> String {

@@ -4,9 +4,7 @@ version = "0.1.0"
 authors = ["snicmakino <mkn.fj.cd@gmail.com>"]
 
 [dependencies]
-twitter-api = "*"
-error-chain = "0.10"
-oauth-client = "0.3"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
+egg-mode = "0.12.0"
+chrono = "0.4.0"
+tokio-core = "0.1.6"
+futures = "0.1.14"

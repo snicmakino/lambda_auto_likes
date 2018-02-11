@@ -1,68 +1,126 @@
-extern crate twitter_api as api;
+pub extern crate chrono;
+pub extern crate tokio_core;
+pub extern crate futures;
+pub extern crate egg_mode;
 
-use oauth::Token;
-use std::convert::AsRef;
-use std::io;
+// use std;
+// use std::io::{Write, Read};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub consumer_key: String,
-    pub consumer_secret: String,
-    pub access_key: String,
-    pub access_secret: String,
+use self::egg_mode::search::{self, ResultType};
+use self::tokio_core::reactor;
+
+pub struct Twitter {
+    core: reactor::Core,
+    handle: reactor::Handle,
+    token: egg_mode::Token,
 }
 
-pub struct Twitter<'a> {
-    pub consumer: Token<'a>,
-    pub access: Token<'a>,
-}
-
-impl<'a> Twitter<'a> {
+impl Twitter {
     pub fn new(
         consumer_key: String,
         consumer_secret: String,
         access_key: String,
         access_secret: String,
-    ) -> Twitter<'a> {
+    ) -> Self {
+        let con_token = egg_mode::KeyPair::new(consumer_key, consumer_secret);
+        let access_token = egg_mode::KeyPair::new(access_key, access_secret);
+
+        let core = reactor::Core::new().unwrap();
+        let handle = core.handle();
+
         Twitter {
-            consumer: Token::new(consumer_key, consumer_secret),
-            access: Token::new(access_key, access_secret),
+            core: core,
+            handle: handle,
+            token: egg_mode::Token::Access {
+                consumer: con_token,
+                access: access_token,
+            },
         }
     }
 
-    fn console_input(&mut self, prompt: &str) -> String {
-        println!("{} : ", prompt);
-        let mut line = String::new();
-        let _ = io::stdin().read_line(&mut line).unwrap();
-        line.trim().to_string()
+    pub fn search(&mut self) {
+        let search = self.core
+            .run(
+                search::search("rustlang")
+                    .result_type(ResultType::Recent)
+                    .count(10)
+                    .call(&self.token, &self.handle),
+            )
+            .unwrap();
+
+        for tweet in &search.statuses {
+            print_tweet(tweet);
+        }
+    }
+}
+
+pub fn print_tweet(tweet: &egg_mode::tweet::Tweet) {
+    if let Some(ref user) = tweet.user {
+        println!(
+            "{} (@{}) posted at {}",
+            user.name,
+            user.screen_name,
+            tweet.created_at.with_timezone(&chrono::Local)
+        );
     }
 
-    pub fn search(&mut self) {}
+    if let Some(ref screen_name) = tweet.in_reply_to_screen_name {
+        println!("--> in reply to @{}", screen_name);
+    }
 
-    pub fn twitter(&mut self) {
-        loop {
-            let make_your_choice = self.console_input("What do you want to do?");
+    if let Some(ref status) = tweet.retweeted_status {
+        if let Some(ref user) = status.user {
+            println!("Retweeted from {}:", user.name);
+        }
+        print_tweet(status);
+        return;
+    } else {
+        println!("{}", tweet.text);
+    }
 
-            match make_your_choice.as_ref() {
-                "update status" => {
-                    let status = self.console_input("What's happening?");
-                    api::update_status(&self.consumer, &self.access, &status).unwrap();
-                }
-                "get timeline" => {
-                    let ts = api::get_last_tweets(&self.consumer, &self.access).unwrap();
-                    if ts.is_empty() {
-                        println!("No tweet in your timeline...");
-                    } else {
-                        for t in ts {
-                            println!("{} - {}", t.created_at, t.text)
-                        }
-                    }
-                }
-                _ => {
-                    println!("Bye!");
-                    break;
-                }
-            }
+    println!("--via {} ({})", tweet.source.name, tweet.source.url);
+
+    if let Some(ref place) = tweet.place {
+        println!("--from {}", place.full_name);
+    }
+
+    if let Some(ref status) = tweet.quoted_status {
+        println!("--Quoting the following status:");
+        print_tweet(status);
+    }
+
+    if !tweet.entities.hashtags.is_empty() {
+        println!("Hashtags contained in the tweet:");
+        for tag in &tweet.entities.hashtags {
+            println!("{}", tag.text);
+        }
+    }
+
+    if !tweet.entities.symbols.is_empty() {
+        println!("Symbols contained in the tweet:");
+        for tag in &tweet.entities.symbols {
+            println!("{}", tag.text);
+        }
+    }
+
+    if !tweet.entities.urls.is_empty() {
+        println!("URLs contained in the tweet:");
+        for url in &tweet.entities.urls {
+            println!("{}", url.expanded_url);
+        }
+    }
+
+    if !tweet.entities.user_mentions.is_empty() {
+        println!("Users mentioned in the tweet:");
+        for user in &tweet.entities.user_mentions {
+            println!("{}", user.screen_name);
+        }
+    }
+
+    if let Some(ref media) = tweet.extended_entities {
+        println!("Media attached to the tweet:");
+        for info in &media.media {
+            println!("A {:?}", info.media_type);
         }
     }
 }
