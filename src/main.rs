@@ -10,7 +10,10 @@ fn main() {
         get_env("TWITTER_ACCESS_KEY"),
         get_env("TWITTER_ACCESS_SECRET"),
     );
-    tw.search();
+
+    for keyword in get_env("SEARCH_KEYWORDS").split(",") {
+        tw.auto_likes(keyword);
+    }
 }
 
 fn get_env(key: &str) -> String {

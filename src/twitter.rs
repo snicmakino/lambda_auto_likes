@@ -3,10 +3,6 @@ pub extern crate tokio_core;
 pub extern crate futures;
 pub extern crate egg_mode;
 
-// use std;
-// use std::io::{Write, Read};
-
-use self::egg_mode::search::{self, ResultType};
 use self::tokio_core::reactor;
 
 pub struct Twitter {
@@ -38,18 +34,26 @@ impl Twitter {
         }
     }
 
-    pub fn search(&mut self) {
-        let search = self.core
+    pub fn auto_likes(&mut self, keyword: &str) {
+
+        let search_result = self.core
             .run(
-                search::search("rustlang")
-                    .result_type(ResultType::Recent)
-                    .count(10)
+                egg_mode::search::search(keyword)
+                    .result_type(egg_mode::search::ResultType::Mixed)
+                    .count(100)
                     .call(&self.token, &self.handle),
             )
             .unwrap();
 
-        for tweet in &search.statuses {
+        for tweet in &search_result.statuses {
+            if let Some(_) = tweet.retweeted_status {
+                continue;
+            }
             print_tweet(tweet);
+            let result = self.core
+                .run(egg_mode::tweet::like(tweet.id, &self.token, &self.handle))
+                .unwrap();
+            print_tweet(&result);
         }
     }
 }
