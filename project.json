@@ -1,0 +1,8 @@
+{
+  "name": "lambda_auto_likes",
+  "description": "This application is that do Twitter like automatically move by AWS lambda",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::626251474303:role/lambda_auto_likes_lambda_function",
+  "environment": {}
+}
