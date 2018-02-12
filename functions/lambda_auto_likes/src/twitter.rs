@@ -49,7 +49,6 @@ impl Twitter {
             if let Some(_) = tweet.retweeted_status {
                 continue;
             }
-            print_tweet(tweet);
             let result = self.core
                 .run(egg_mode::tweet::like(tweet.id, &self.token, &self.handle))
                 .unwrap();
