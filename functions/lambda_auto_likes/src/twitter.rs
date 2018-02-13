@@ -49,10 +49,16 @@ impl Twitter {
             if let Some(_) = tweet.retweeted_status {
                 continue;
             }
-            let result = self.core
-                .run(egg_mode::tweet::like(tweet.id, &self.token, &self.handle))
-                .unwrap();
-            print_tweet(&result);
+            let result = self.core.run(egg_mode::tweet::like(
+                tweet.id,
+                &self.token,
+                &self.handle,
+            ));
+
+            match result {
+                Ok(tweet) => print_tweet(&tweet),
+                Err(_) => return,
+            }
         }
     }
 }
