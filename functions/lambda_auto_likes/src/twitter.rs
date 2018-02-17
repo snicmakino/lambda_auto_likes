@@ -34,7 +34,7 @@ impl Twitter {
         }
     }
 
-    pub fn auto_likes(&mut self, keyword: &str) {
+    pub fn auto_likes(&mut self, keyword: &str) -> i32 {
 
         let search_result = self.core
             .run(
@@ -45,10 +45,14 @@ impl Twitter {
             )
             .unwrap();
 
+        let mut count = 0;
         for tweet in &search_result.statuses {
             if let Some(_) = tweet.retweeted_status {
                 continue;
             }
+
+            print_tweet(&tweet);
+            count += 1;
             let result = self.core.run(egg_mode::tweet::like(
                 tweet.id,
                 &self.token,
@@ -56,10 +60,14 @@ impl Twitter {
             ));
 
             match result {
-                Ok(tweet) => print_tweet(&tweet),
-                Err(_) => return,
+                Ok(like_tweet) => {
+                    print_tweet(&like_tweet);
+                    count += 1
+                }
+                Err(_) => continue,
             }
         }
+        count
     }
 }
 
